@@ -21,8 +21,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-set(TY_EXECUTABLE "/usr/bin/tyc" CACHE FILEPATH "Path to the 'ty' executable that can upload programs to the Teensy")
-
+set(TY_EXECUTABLE "$ENV{HOME}/dev/teensy_loader_cli.exe" CACHE FILEPATH "Path to the 'ty' executable that can upload programs to the Teensy")
 set(TEENSY_C_CORE_FILES
     ${TEENSY_ROOT}/math_helper.c
     ${TEENSY_ROOT}/analog.c
@@ -56,7 +55,7 @@ set(TEENSY_CXX_CORE_FILES
     ${TEENSY_ROOT}/HardwareSerial3.cpp
     ${TEENSY_ROOT}/WMath.cpp
     ${TEENSY_ROOT}/Print.cpp
-    
+    ${TEENSY_ROOT}/EventResponder.cpp
     ${TEENSY_ROOT}/new.cpp
     ${TEENSY_ROOT}/usb_flightsim.cpp
     ${TEENSY_ROOT}/avr_emulation.cpp
@@ -87,9 +86,9 @@ macro(add_teensy_executable TARGET_NAME SOURCES)
     else()
         message(FATAL_ERROR "Invalid USB mode: ${TEENSY_USB_MODE}")
     endif()
-    set(TARGET_FLAGS "-D${USB_MODE_DEF} -DF_CPU=${TEENSY_FREQUENCY}000000 ${TEENSY_FLAGS}")
-    set(TARGET_C_FLAGS "${TARGET_FLAGS} ${TEENSY_C_FLAGS}")
-    set(TARGET_CXX_FLAGS "${TARGET_FLAGS} ${TEENSY_CXX_FLAGS}")
+    # set(TARGET_FLAGS "-D${USB_MODE_DEF} -DF_CPU=${TEENSY_FREQUENCY}000000 ${TEENSY_FLAGS}")
+    # set(TARGET_C_FLAGS "${TARGET_FLAGS} ${TEENSY_C_FLAGS}")
+    # set(TARGET_CXX_FLAGS "${TARGET_FLAGS} ${TEENSY_CXX_FLAGS}")
 
     # Build the Teensy 'core' library.
     # Per-target because of preprocessor definitions.
@@ -97,10 +96,10 @@ macro(add_teensy_executable TARGET_NAME SOURCES)
         ${TEENSY_C_CORE_FILES}
         ${TEENSY_CXX_CORE_FILES}
     )
-    set_source_files_properties(${TEENSY_C_CORE_FILES}
-        PROPERTIES COMPILE_FLAGS ${TARGET_C_FLAGS})
-    set_source_files_properties(${TEENSY_CXX_CORE_FILES}
-        PROPERTIES COMPILE_FLAGS ${TARGET_CXX_FLAGS})
+    # set_source_files_properties(${TEENSY_C_CORE_FILES}
+    #     PROPERTIES COMPILE_FLAGS ${TARGET_C_FLAGS})
+    # set_source_files_properties(${TEENSY_CXX_CORE_FILES}
+    #     PROPERTIES COMPILE_FLAGS ${TARGET_CXX_FLAGS})
 
     set(FINAL_SOURCES ${TEENSY_LIB_SOURCES})
     foreach(SOURCE ${SOURCES})
@@ -112,7 +111,7 @@ macro(add_teensy_executable TARGET_NAME SOURCES)
             set(GEN_SOURCE "${CMAKE_CURRENT_BINARY_DIR}/${SOURCE_NAME}.cpp")
             set(TEMPLATE_FILE "${SOURCE}.in")
             if(NOT EXISTS "${TEMPLATE_FILE}")
-                set(TEMPLATE_FILE "${CMAKE_SOURCE_DIR}/cmake/Arduino.inc.in")
+                set(TEMPLATE_FILE "${CMAKE_SOURCE_DIR}/Arduino.inc.in")
             endif()
             configure_file("${TEMPLATE_FILE}" "${GEN_SOURCE}")
             set(FINAL_SOURCES ${FINAL_SOURCES} ${GEN_SOURCE})
@@ -128,8 +127,8 @@ macro(add_teensy_executable TARGET_NAME SOURCES)
     
     # Build the ELF executable.
     add_executable(${TARGET_NAME} ${FINAL_SOURCES})
-    set_source_files_properties(${FINAL_SOURCES}
-        PROPERTIES COMPILE_FLAGS ${TARGET_CXX_FLAGS})
+    # set_source_files_properties(${FINAL_SOURCES}
+    #     PROPERTIES COMPILE_FLAGS ${TARGET_CXX_FLAGS})
     target_link_libraries(${TARGET_NAME} ${TARGET_NAME}_TeensyCore)
     set_target_properties(${TARGET_NAME} PROPERTIES
         OUTPUT_NAME ${TARGET_NAME}
@@ -151,10 +150,13 @@ macro(add_teensy_executable TARGET_NAME SOURCES)
     add_dependencies(${TARGET_NAME}_Firmware ${TARGET_NAME})
     
     if(EXISTS "${TY_EXECUTABLE}")
-        add_custom_target(${TARGET_NAME}_Upload
-                          DEPENDS ${TY_EXECUTABLE} ${TARGET_ELF}.hex
-                          COMMAND "${TY_EXECUTABLE}" upload ${TARGET_ELF}.hex)
-        add_dependencies(${TARGET_NAME}_Upload ${TARGET_NAME}_Firmware)
+        add_custom_target(upload
+                          DEPENDS ${TARGET_ELF}.hex
+                          COMMAND echo "Attempting to flash teensy. Press reset button..."
+                          COMMAND "${TY_EXECUTABLE}" --mcu=mk20dx256 -w ${TARGET_NAME}.elf.hex
+                          WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
+                          VERBATIM)
+        add_dependencies(upload ${TARGET_NAME}_Firmware)
     endif(EXISTS "${TY_EXECUTABLE}")
 endmacro(add_teensy_executable) 
 

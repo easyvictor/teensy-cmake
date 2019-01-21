@@ -22,8 +22,8 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 set(TRIPLE "arm-none-eabi")
-set(TOOLCHAIN_ROOT "/usr")
-set(TEENSY_CORES_ROOT "/usr/share/arduino/hardware/teensy/cores" CACHE PATH "Path to the Teensy 'cores' repository")
+set(TOOLCHAIN_ROOT "$ENV{HOME}/dev/GitHub/teensy/gcc-arm-none-eabi-8-2018-q4-major")
+set(TEENSY_CORES_ROOT "$ENV{HOME}/dev/GitHub/teensy/cores" CACHE PATH "Path to the Teensy 'cores' repository")
 set(TEENSY_ROOT "${TEENSY_CORES_ROOT}/teensy3")
 set(ARDUINO_LIB_ROOT "/usr/share/arduino/libraries" CACHE PATH "Path to the Arduino library directory")
 set(ARDUINO_VERSION "106" CACHE STRING "Version of the Arduino SDK")
@@ -62,8 +62,8 @@ include_directories("${TEENSY_ROOT}")
 set(TARGET_FLAGS "-mcpu=cortex-m4 -mthumb")
 set(BASE_FLAGS "-Os -Wall -nostdlib -ffunction-sections -fdata-sections ${TARGET_FLAGS}")
 
-set(CMAKE_C_FLAGS "${BASE_FLAGS} -DTIME_T=1421620748" CACHE STRING "c flags") # XXX Generate TIME_T dynamically.
-set(CMAKE_CXX_FLAGS "${BASE_FLAGS} -fno-exceptions -fno-rtti -felide-constructors -std=gnu++0x" CACHE STRING "c++ flags")
+set(CMAKE_C_FLAGS "${BASE_FLAGS} -DTIME_T=1421620748 -DF_CPU=${TEENSY_FREQUENCY}000000 -DUSB_${TEENSY_USB_MODE}" CACHE STRING "c flags") # XXX Generate TIME_T dynamically.
+set(CMAKE_CXX_FLAGS "${BASE_FLAGS} -fno-exceptions -fno-rtti -felide-constructors -std=gnu++0x -DF_CPU=${TEENSY_FREQUENCY}000000 -DUSB_${TEENSY_USB_MODE}" CACHE STRING "c++ flags")
 
 set(LINKER_FLAGS "-Os -Wl,--gc-sections ${TARGET_FLAGS} -T${TEENSY_ROOT}/mk20dx256.ld" )
 set(LINKER_LIBS "-larm_cortexM4l_math -lm" )
